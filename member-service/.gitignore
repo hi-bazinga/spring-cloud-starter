@@ -1,0 +1,9 @@
+HELP.md
+target/
+!**/src/main/**
+!**/src/test/**
+.idea
+.mvn
+*.iws
+*.iml
+*.ipr
