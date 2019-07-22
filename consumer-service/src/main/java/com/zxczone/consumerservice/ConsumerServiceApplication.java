@@ -1,7 +1,8 @@
-package com.zxczone.memberservice;
+package com.zxczone.consumerservice;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.circuitbreaker.EnableCircuitBreaker;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
@@ -9,7 +10,8 @@ import org.springframework.web.client.RestTemplate;
 
 @EnableDiscoveryClient
 @SpringBootApplication
-public class MemberServiceApplication {
+@EnableCircuitBreaker
+public class ConsumerServiceApplication {
 
     @Bean
     @LoadBalanced
@@ -18,7 +20,7 @@ public class MemberServiceApplication {
     }
 
     public static void main(String[] args) {
-        SpringApplication.run(MemberServiceApplication.class, args);
+        SpringApplication.run(ConsumerServiceApplication.class, args);
     }
 
 }
