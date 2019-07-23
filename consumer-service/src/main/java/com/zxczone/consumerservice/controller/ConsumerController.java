@@ -1,9 +1,10 @@
 package com.zxczone.consumerservice.controller;
 
-import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+import com.zxczone.consumerservice.service.HystrixService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,32 +19,74 @@ public class ConsumerController {
     @Autowired
     RestTemplate restTemplate;
 
+    @Autowired
+    HystrixService hystrixService;
+
     /**
      * Test load balance in Ribbon
      */
     @RequestMapping(value = "/ribbon", method = RequestMethod.GET)
     public String testRibbon() {
-        logger.info("Test Ribbon, call user-service");
         String result = restTemplate.getForObject("http://user-service/test/ribbon", String.class);
-        logger.info("Test Ribbon, call user-service: {}", result);
+        logger.info("Test load balance in Ribbon, call user-service: {}", result);
         return result;
     }
 
     /**
-     * Test circuit breaker in Hystrix
+     * Test fallback in Hystrix
      */
-    @HystrixCommand(fallbackMethod = "hystrixFallback", commandKey = "testHystrix")
     @RequestMapping(value = "/hystrix", method = RequestMethod.GET)
     public String testHystrix() {
-        String result = restTemplate.getForObject("http://user-service/test/hystrix", String.class);
-        logger.info("Test Hystrix, call user-service: {}", result);
-        return result;
+        return hystrixService.hystrix();
     }
 
-    public String hystrixFallback() {
-        String result = "Get result from hystrix fallback!";
-        logger.info(result);
-        return result;
+    /**
+     * Test fallback with exception in Hystrix
+     */
+    @RequestMapping(value = "/hystrix_exception/{number}", method = RequestMethod.GET)
+    public String testHystrixWithException(@PathVariable("number") int num) {
+        return hystrixService.hystrixWithException(num);
+    }
+
+    /**
+     * Test cache in Hystrix, cache key = num % 3
+     */
+    @RequestMapping(value = "/hystrix_cache/{number}", method = RequestMethod.GET)
+    public String testHystrixWithCache(@PathVariable("number") int num) {
+        logger.info("==== Test cache starts ====");
+
+        logger.info("1st call, num: {}", num);
+        hystrixService.hystrixCacheResult(num);
+        logger.info("2nd call, num: {}", num += 1);
+        hystrixService.hystrixCacheResult(num);
+        logger.info("3rd call, num: {}", num += 2);
+        hystrixService.hystrixCacheResult(num);
+        logger.info("remove cache, num: {}", num += 3);
+        hystrixService.hystrixCacheRemove(num);
+        logger.info("4th call, num: {}", num);
+        hystrixService.hystrixCacheResult(num);
+
+        logger.info("==== Test cache ends ====");
+        return "success";
+    }
+
+    /**
+     * Test collapser in Hystrix
+     */
+    @RequestMapping(value = "/hystrix_collapser/{str}", method = RequestMethod.GET)
+    public String testHystrixCollapser(@PathVariable("str") String str) throws InterruptedException {
+        logger.info("==== Test collapser starts ====");
+
+        hystrixService.hystrixSingle(str);
+        hystrixService.hystrixSingle(str);
+        hystrixService.hystrixSingle(str);
+
+        Thread.sleep(1500);
+        hystrixService.hystrixSingle(str);
+        hystrixService.hystrixSingle(str);
+
+        logger.info("==== Test collapser ends ====");
+        return "success";
     }
 
 }
